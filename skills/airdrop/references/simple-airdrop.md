@@ -109,4 +109,4 @@ const ix = await CompressedTokenProgram.compress({
 
 ## Source
 
-- [example-token-distribution/simple-airdrop](https://github.com/Lightprotocol/examples-zk-compression/tree/main/example-token-distribution/src/simple-airdrop)
+- [examples-light-token](https://github.com/Lightprotocol/examples-light-token)

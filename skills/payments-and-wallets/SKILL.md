@@ -30,6 +30,21 @@ Build payment flows and wallet integrations using light-token on Solana. The lig
    - Track progress with `TodoWrite`
 5. **When stuck**: spawn subagent with `Read`, `Glob`, `Grep`, DeepWiki MCP access and load `skills/ask-mcp`
 
+## API overview
+
+| Operation | SPL | light-token (action / instruction) |
+|-----------|-----|-------------------------------------|
+| Receive | `getOrCreateAssociatedTokenAccount()` | `loadAta()` / `createLoadAtaInstructions()` |
+| Transfer | `createTransferInstruction()` | `transferInterface()` / `createTransferInterfaceInstructions()` |
+| Get balance | `getAccount()` | `getAtaInterface()` |
+| Tx history | `getSignaturesForAddress()` | `rpc.getSignaturesForOwnerInterface()` |
+| Wrap from SPL | N/A | `wrap()` / `createWrapInstruction()` |
+| Unwrap to SPL | N/A | `unwrap()` / `createUnwrapInstructions()` |
+| Register SPL mint | N/A | `createSplInterface()` / `LightTokenProgram.createSplInterface()` |
+| Create mint | `createMint()` | `createMintInterface()` |
+
+Plural functions (`createTransferInterfaceInstructions`, `createUnwrapInstructions`) return `TransactionInstruction[][]` — each inner array is one transaction. They handle loading cold accounts automatically.
+
 ## Domain references
 
 | Task | Reference |
@@ -38,23 +53,26 @@ Build payment flows and wallet integrations using light-token on Solana. The lig
 | Build wallet UI (display tokens, transfer, wrap/unwrap) | [wallets.md](references/wallets.md) |
 | Sign with Wallet Adapter or Mobile Wallet Adapter | [sign-with-adapter.md](references/sign-with-adapter.md) |
 | Sign with Privy (embedded wallet provider) | [sign-with-privy.md](references/sign-with-privy.md) |
-| Optional Prevent duplicate actions (double-spend prevention) | [nullifiers.md](references/nullifiers.md) |
+| Prevent duplicate actions (double-spend prevention) | [nullifiers.md](references/nullifiers.md) |
 
 ## Setup
 
 ```bash
-npm install @lightprotocol/compressed-token @lightprotocol/stateless.js @solana/web3.js @solana/spl-token
+npm install @lightprotocol/compressed-token@beta @lightprotocol/stateless.js@beta @solana/web3.js @solana/spl-token
 ```
 
 ```typescript
 import { createRpc } from "@lightprotocol/stateless.js";
 import {
-  getOrCreateAtaInterface,
-  getAtaInterface,
-  getAssociatedTokenAddressInterface,
+  createLoadAtaInstructions,
+  loadAta,
+  createTransferInterfaceInstructions,
   transferInterface,
-  wrap,
+  createUnwrapInstructions,
   unwrap,
+  getAssociatedTokenAddressInterface,
+  getAtaInterface,
+  wrap,
 } from "@lightprotocol/compressed-token/unified";
 
 const rpc = createRpc(RPC_ENDPOINT);

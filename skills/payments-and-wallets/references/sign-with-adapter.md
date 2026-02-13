@@ -26,7 +26,7 @@ import { PublicKey, Transaction } from '@solana/web3.js';
 import {
   createTransferInterfaceInstruction,
   getAssociatedTokenAddressInterface,
-} from '@lightprotocol/compressed-token';
+} from '@lightprotocol/compressed-token/unified';
 
 const { connection } = useConnection();
 const { publicKey, sendTransaction } = useWallet();
@@ -73,7 +73,7 @@ import {
   createTransferInterfaceInstruction,
   getAssociatedTokenAddressInterface,
   createLoadAtaInstructions,
-} from '@lightprotocol/compressed-token';
+} from '@lightprotocol/compressed-token/unified';
 
 const rpc = createRpc(RPC_URL);
 
@@ -124,7 +124,7 @@ import {
   createTransferInterfaceInstruction,
   getAssociatedTokenAddressInterface,
   createLoadAtaInstructions,
-} from '@lightprotocol/compressed-token';
+} from '@lightprotocol/compressed-token/unified';
 
 const { publicKey, signTransaction } = useWallet();
 const rpc = createRpc(RPC_URL);

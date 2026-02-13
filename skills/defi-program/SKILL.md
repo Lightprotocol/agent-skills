@@ -68,3 +68,5 @@ The hot path has zero overhead.
 |----------|------|
 | Anchor AMM reference | [cp-swap-reference](https://github.com/Lightprotocol/cp-swap-reference) |
 | Pinocchio swap reference | [pinocchio-swap](https://github.com/Lightprotocol/examples-light-token/tree/main/pinocchio/swap) |
+| Anchor counter (rent-free PDA) | [basic-macros/counter](https://github.com/Lightprotocol/examples-light-token/tree/main/programs/anchor/basic-macros/counter) |
+| Pinocchio counter (zero-copy PDA) | [pinocchio/counter](https://github.com/Lightprotocol/examples-light-token/tree/main/pinocchio/counter) |

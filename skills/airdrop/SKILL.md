@@ -46,7 +46,7 @@ Distribute compressed tokens to multiple recipients using TypeScript client.
 
 Customize token distribution and let users claim.
 
-Simple Implementation: [simple-claim](./simple-claim) - Distributes compressed tokens that get decompressed on claim.
+Simple Implementation: [simple-claim](https://github.com/Lightprotocol/program-examples/tree/main/airdrop-implementations/simple-claim) - Distributes compressed tokens that get decompressed on claim.
 
 Advanced Implementation: [distributor](https://github.com/Lightprotocol/distributor/tree/master) - Distributes SPL tokens, uses compressed PDAs to track claims. Based on jito Merkle distributor.
 
@@ -143,7 +143,6 @@ For vesting, clawback, or user-initiated claims:
 
 ## Resources
 
-- **Docs**: [Airdrop Guide](https://www.zkcompression.com/compressed-tokens/advanced-guides/airdrop)
-- **Docs**: [Claim Implementations](https://www.zkcompression.com/compressed-tokens/advanced-guides/airdrop#claim-reference-implementations)
-- **Code**: [example-token-distribution](https://github.com/Lightprotocol/examples-zk-compression/tree/main/example-token-distribution)
+- **Docs**: [Airdrop Guide](https://www.zkcompression.com/compressed-tokens/airdrop)
+- **Code**: [examples-light-token](https://github.com/Lightprotocol/examples-light-token)
 - **Tool**: [Airship by Helius](https://airship.helius.dev/)

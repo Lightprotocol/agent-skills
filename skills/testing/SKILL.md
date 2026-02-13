@@ -33,6 +33,7 @@ version: 1.0.0
 |------|-----------|
 | Start local validator | [references/local.md](references/local.md) |
 | Test on devnet | [references/devnet.md](references/devnet.md) |
+| Test Pinocchio programs | `cargo test-sbf -p <program-name>` (no Anchor required) |
 
 ## Program addresses
 

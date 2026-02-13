@@ -8,81 +8,87 @@ The light-token API matches SPL-token. Your users hold and receive tokens of the
 
 ## API comparison
 
-| Operation | SPL | light-token |
-|-----------|-----|-------------|
-| Get/Create ATA | `getOrCreateAssociatedTokenAccount()` | `getOrCreateAtaInterface()` |
-| Derive ATA | `getAssociatedTokenAddress()` | `getAssociatedTokenAddressInterface()` |
-| Transfer | `transferChecked()` | `transferInterface()` |
+| Operation | SPL | light-token (action / instruction) |
+|-----------|-----|-------------------------------------|
+| Receive | `getOrCreateAssociatedTokenAccount()` | `loadAta()` / `createLoadAtaInstructions()` |
+| Transfer | `createTransferInstruction()` | `transferInterface()` / `createTransferInterfaceInstructions()` |
 | Get balance | `getAccount()` | `getAtaInterface()` |
 | Tx history | `getSignaturesForAddress()` | `rpc.getSignaturesForOwnerInterface()` |
-| Wrap from SPL | N/A | `wrap()` |
-| Unwrap to SPL | N/A | `unwrap()` |
+| Wrap from SPL | N/A | `wrap()` / `createWrapInstruction()` |
+| Unwrap to SPL | N/A | `unwrap()` / `createUnwrapInstructions()` |
 
 Full code examples: [payments-and-wallets](https://github.com/Lightprotocol/examples-light-token/tree/main/toolkits/payments-and-wallets)
 
 ## Setup
 
 ```bash
-npm install @lightprotocol/compressed-token @lightprotocol/stateless.js @solana/web3.js @solana/spl-token
+npm install @lightprotocol/compressed-token@beta @lightprotocol/stateless.js@beta @solana/web3.js @solana/spl-token
 ```
 
 ```typescript
 import { createRpc } from "@lightprotocol/stateless.js";
 
 import {
-  getOrCreateAtaInterface,
-  getAtaInterface,
-  getAssociatedTokenAddressInterface,
+  createLoadAtaInstructions,
+  loadAta,
+  createTransferInterfaceInstructions,
   transferInterface,
-  wrap,
+  createUnwrapInstructions,
   unwrap,
-} from "@lightprotocol/compressed-token";
+  getAssociatedTokenAddressInterface,
+  getAtaInterface,
+  wrap,
+} from "@lightprotocol/compressed-token/unified";
 
 const rpc = createRpc(RPC_ENDPOINT);
 ```
 
 ## Receive tokens
 
+Load creates the ATA if needed and loads any compressed state into it. Share the ATA address with the sender.
+
+> **About loading**: Light tokens reduce account rent ~200x by auto-compressing inactive accounts. Before any action, the SDK detects compressed state and adds instructions to load it back on-chain. This almost always fits in a single atomic transaction. APIs return `TransactionInstruction[][]` so the same loop handles the rare multi-transaction case automatically.
+
 ### Instruction
 
 ```typescript
 import { Transaction } from "@solana/web3.js";
 import {
-  createAssociatedTokenAccountInterfaceIdempotentInstruction,
   createLoadAtaInstructions,
   getAssociatedTokenAddressInterface,
-} from "@lightprotocol/compressed-token";
-import { LIGHT_TOKEN_PROGRAM_ID } from "@lightprotocol/stateless.js";
+} from "@lightprotocol/compressed-token/unified";
 
 const ata = getAssociatedTokenAddressInterface(mint, recipient);
 
-const tx = new Transaction().add(
-  createAssociatedTokenAccountInterfaceIdempotentInstruction(
-    payer.publicKey,
-    ata,
-    recipient,
-    mint,
-    LIGHT_TOKEN_PROGRAM_ID
-  ),
-  ...(await createLoadAtaInstructions(
-    rpc,
-    ata,
-    recipient,
-    mint,
-    payer.publicKey
-  ))
+// Returns TransactionInstruction[][].
+// Each inner array is one transaction.
+// Almost always returns just one.
+const instructions = await createLoadAtaInstructions(
+  rpc,
+  ata,
+  recipient,
+  mint,
+  payer.publicKey
 );
+
+for (const ixs of instructions) {
+  const tx = new Transaction().add(...ixs);
+  await sendAndConfirmTransaction(rpc, tx, [payer]);
+}
 ```
 
-### Action helper
+### Action
 
 ```typescript
-import { getOrCreateAtaInterface } from "@lightprotocol/compressed-token";
+import {
+  loadAta,
+  getAssociatedTokenAddressInterface,
+} from "@lightprotocol/compressed-token/unified";
 
-const ata = await getOrCreateAtaInterface(rpc, payer, mint, recipient);
-// Share ata.parsed.address with sender
+const ata = getAssociatedTokenAddressInterface(mint, recipient);
 
-console.log(ata.parsed.amount);
+const sig = await loadAta(rpc, ata, recipient, mint, payer);
+if (sig) console.log("Loaded:", sig);
 ```
 
 ## Send tokens
@@ -91,73 +97,36 @@ console.log(ata.parsed.amount);
 
 ```typescript
 import { Transaction } from "@solana/web3.js";
-import {
-  createLoadAtaInstructions,
-  createTransferInterfaceInstruction,
-  getAssociatedTokenAddressInterface,
-} from "@lightprotocol/compressed-token";
+import { createTransferInterfaceInstructions } from "@lightprotocol/compressed-token/unified";
 
-const sourceAta = getAssociatedTokenAddressInterface(mint, owner.publicKey);
-const destinationAta = getAssociatedTokenAddressInterface(mint, recipient);
-
-const tx = new Transaction().add(
-  ...(await createLoadAtaInstructions(
-    rpc,
-    sourceAta,
-    owner.publicKey,
-    mint,
-    payer.publicKey
-  )),
-  createTransferInterfaceInstruction(
-    sourceAta,
-    destinationAta,
-    owner.publicKey,
-    amount
-  )
-);
-```
-
-With idempotent ATA creation for recipient:
-
-```typescript
-import {
-  getAssociatedTokenAddressInterface,
-  createAssociatedTokenAccountInterfaceIdempotentInstruction,
-} from "@lightprotocol/compressed-token";
-import { LIGHT_TOKEN_PROGRAM_ID } from "@lightprotocol/stateless.js";
-
-const destinationAta = getAssociatedTokenAddressInterface(mint, recipient);
-const createAtaIx = createAssociatedTokenAccountInterfaceIdempotentInstruction(
+// Each inner array = one transaction. Usually just one.
+const instructions = await createTransferInterfaceInstructions(
+  rpc,
   payer.publicKey,
-  destinationAta,
-  recipient,
   mint,
-  LIGHT_TOKEN_PROGRAM_ID
+  amount,
+  owner.publicKey,
+  recipient
 );
 
-new Transaction().add(createAtaIx, transferIx);
+for (const ixs of instructions) {
+  const tx = new Transaction().add(...ixs);
+  await sendAndConfirmTransaction(rpc, tx, [payer, owner]);
+}
 ```
 
-### Action helper
+### Action
 
 ```typescript
 import {
   getAssociatedTokenAddressInterface,
   transferInterface,
-} from "@lightprotocol/compressed-token";
+} from "@lightprotocol/compressed-token/unified";
 
 const sourceAta = getAssociatedTokenAddressInterface(mint, owner.publicKey);
-const destinationAta = getAssociatedTokenAddressInterface(mint, recipient);
 
-await transferInterface(
-  rpc,
-  payer,
-  sourceAta,
-  mint,
-  destinationAta,
-  owner,
-  amount
-);
+// Handles loading, creates recipient ATA, transfers.
+await transferInterface(rpc, payer, sourceAta, mint, recipient, owner, amount);
 ```
 
 ## Show balance
@@ -166,7 +135,7 @@ await transferInterface(
 import {
   getAssociatedTokenAddressInterface,
   getAtaInterface,
-} from "@lightprotocol/compressed-token";
+} from "@lightprotocol/compressed-token/unified";
 
 const ata = getAssociatedTokenAddressInterface(mint, owner);
 const account = await getAtaInterface(rpc, ata, owner, mint);
@@ -196,8 +165,8 @@ import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import {
   createWrapInstruction,
   getAssociatedTokenAddressInterface,
-  getSplInterfaceInfos,
-} from "@lightprotocol/compressed-token";
+} from "@lightprotocol/compressed-token/unified";
+import { getSplInterfaceInfos } from "@lightprotocol/compressed-token";
 
 const splAta = getAssociatedTokenAddressSync(mint, owner.publicKey);
 const tokenAta = getAssociatedTokenAddressInterface(mint, owner.publicKey);
@@ -213,7 +182,8 @@ const tx = new Transaction().add(
     mint,
     amount,
     splInterfaceInfo,
-    decimals
+    decimals,
+    payer.publicKey
   )
 );
 ```
@@ -225,7 +195,7 @@ import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import {
   wrap,
   getAssociatedTokenAddressInterface,
-} from "@lightprotocol/compressed-token";
+} from "@lightprotocol/compressed-token/unified";
 
 const splAta = getAssociatedTokenAddressSync(mint, owner.publicKey);
 const tokenAta = getAssociatedTokenAddressInterface(mint, owner.publicKey);
@@ -240,43 +210,31 @@ await wrap(rpc, payer, splAta, tokenAta, owner, mint, amount);
 ```typescript
 import { Transaction } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
-import {
-  createLoadAtaInstructions,
-  createUnwrapInstruction,
-  getAssociatedTokenAddressInterface,
-  getSplInterfaceInfos,
-} from "@lightprotocol/compressed-token";
+import { createUnwrapInstructions } from "@lightprotocol/compressed-token/unified";
 
-const tokenAta = getAssociatedTokenAddressInterface(mint, owner.publicKey);
 const splAta = getAssociatedTokenAddressSync(mint, owner.publicKey);
 
-const splInterfaceInfos = await getSplInterfaceInfos(rpc, mint);
-const splInterfaceInfo = splInterfaceInfos.find((i) => i.isInitialized);
-
-const tx = new Transaction().add(
-  ...(await createLoadAtaInstructions(
-    rpc,
-    tokenAta,
-    owner.publicKey,
-    mint,
-    payer.publicKey
-  )),
-  createUnwrapInstruction(
-    tokenAta,
-    splAta,
-    owner.publicKey,
-    mint,
-    amount,
-    splInterfaceInfo,
-    decimals
-  )
+// Each inner array = one transaction. Handles loading + unwrapping together.
+const instructions = await createUnwrapInstructions(
+  rpc,
+  splAta,
+  owner.publicKey,
+  mint,
+  amount,
+  payer.publicKey
 );
+
+for (const ixs of instructions) {
+  const tx = new Transaction().add(...ixs);
+  await sendAndConfirmTransaction(rpc, tx, [payer, owner]);
+}
 ```
 
-### Action helper
+### Action
 
 ```typescript
 import { getAssociatedTokenAddressSync } from "@solana/spl-token";
+import { unwrap } from "@lightprotocol/compressed-token/unified";
 
 const splAta = getAssociatedTokenAddressSync(mint, owner.publicKey);
 

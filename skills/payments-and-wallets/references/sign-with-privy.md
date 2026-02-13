@@ -24,7 +24,7 @@ import {PublicKey, Transaction} from '@solana/web3.js';
 import {
   createTransferInterfaceInstruction,
   getAssociatedTokenAddressInterface,
-} from '@lightprotocol/compressed-token';
+} from '@lightprotocol/compressed-token/unified';
 
 const connection = createRpc(process.env.HELIUS_RPC_URL!);
 const privy = new PrivyClient({
@@ -82,7 +82,7 @@ import { PublicKey, Transaction } from '@solana/web3.js';
 import {
   createTransferInterfaceInstruction,
   getAssociatedTokenAddressInterface,
-} from '@lightprotocol/compressed-token';
+} from '@lightprotocol/compressed-token/unified';
 
 const rpc = createRpc(import.meta.env.VITE_HELIUS_RPC_URL);
 

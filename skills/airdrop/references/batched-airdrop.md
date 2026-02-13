@@ -282,4 +282,4 @@ const recipients = [
 
 ## Source
 
-- [example-token-distribution/optimized-airdrop](https://github.com/Lightprotocol/examples-zk-compression/tree/main/example-token-distribution/src/optimized-airdrop)
+- [examples-light-token](https://github.com/Lightprotocol/examples-light-token)
